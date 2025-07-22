@@ -1,40 +1,46 @@
-import asyncio
-import logging
-import os
 from dotenv import load_dotenv
-from livekit import rtc
-from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli
-from livekit.plugins import minimax
+
+from livekit import agents
+from livekit.agents import AgentSession, Agent, RoomInputOptions
+from livekit.plugins import (
+    openai,
+    minimax,
+    noise_cancellation,
+    silero,
+)
+from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 load_dotenv()
 
-logger = logging.getLogger("minimax-tts-demo")
-logger.setLevel(logging.INFO)
+
+class Assistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(instructions="You are a helpful voice AI assistant.")
 
 
-async def entrypoint(job: JobContext):
-    logger.info("starting tts example agent")
+async def entrypoint(ctx: agents.JobContext):
+    session = AgentSession(
+        llm=openai.LLM(model="gpt-4o-mini"),
+        tts=minimax.TTS(model="speech-02-turbo", voice_id="male-qn-qingse"),
+        vad=silero.VAD.load(),
+        turn_detection=MultilingualModel(),
+    )
 
-    tts = minimax.TTS(sample_rate=44100)
+    await session.start(
+        room=ctx.room,
+        agent=Assistant(),
+        room_input_options=RoomInputOptions(
+            # LiveKit Cloud enhanced noise cancellation
+            # - If self-hosting, omit this parameter
+            # - For telephony applications, use `BVCTelephony` for best results
+            noise_cancellation=noise_cancellation.BVC(), 
+        ),
+    )
 
-    source = rtc.AudioSource(tts.sample_rate, tts.num_channels)
-    track = rtc.LocalAudioTrack.create_audio_track("agent-mic", source)
-    options = rtc.TrackPublishOptions()
-    options.source = rtc.TrackSource.SOURCE_MICROPHONE
-
-    await job.connect(auto_subscribe=AutoSubscribe.SUBSCRIBE_NONE)
-    publication = await job.room.local_participant.publish_track(track, options)
-    await publication.wait_for_subscription()
-
-    logger.info('Saying "Hello!"')
-    async for output in tts.synthesize("Hello! I am minimax tts"):
-        await source.capture_frame(output.frame)
-
-    await asyncio.sleep(1)
-    logger.info('Saying "Goodbye."')
-    async for output in tts.synthesize("Goodbye. I am minimax tts"):
-        await source.capture_frame(output.frame)
+    await session.generate_reply(
+        instructions="Greet the user and offer your assistance."
+    )
 
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))

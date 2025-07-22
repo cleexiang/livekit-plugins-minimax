@@ -2,7 +2,7 @@
 from .tts import TTS, ChunkedStream
 from .version import __version__
 
-__all__ = ["TTS", "ChunkedStream", "__version__"]
+__all__ = ["TTS", "ChunkedStream", "SynthesizeStream", "__version__"]
 
 from livekit.agents import Plugin
 

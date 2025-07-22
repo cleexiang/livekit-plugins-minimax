@@ -1,16 +1,19 @@
 from typing import Literal
 
-TTSModels = Literal[
-    "speech-02-hd-preview",
-    "speech-02-turbo-preview",
-    "speech-01-hd",
-    "speech-01-turbo",
+TTSEncoding = Literal[
+    "pcm_s16le",
+    # Not yet supported
+    # "pcm_f32le",
+    # "pcm_mulaw",
+    # "pcm_alaw",
 ]
 
-TTSLanguage = Literal["Chinese", "Chinese,Yue", "English", "Arabic", "Russian", "Spanish", "French", "Portuguese", "German", "Turkish", "Dutch", "Ukrainian", "Vietnamese", "Indonesian", "Japanese", "Italian", "Korean", "Thai", "Polish", "Romanian", "Greek", "Czech", "Finnish", "Hindi", "auto"]
-
-TTSSampleRate = Literal[8000, 16000, 22050, 24000, 32000, 44100]
-
-TTSEncoding = Literal["mp3", "pcm", "flac"]
-
+TTSModels = Literal["speech-01-turbo", "speech-01-hd"]
+TTSLanguages = Literal["en", "es", "fr", "de", "pt", "zh", "ja"]
 TTSDefaultVoiceId = "Friendly_Person"
+TTSVoiceEmotion = Literal[
+    "happy",
+    "sad",
+    "angry",
+    "fearful"
+]
